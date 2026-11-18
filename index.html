@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#ecf5ff">
+<meta name="theme-color" content="#f7f7f5">
 <title>Заплывы Луки</title>
 <meta name="description" content="Заплывы, личные рекорды и достижения Луки в бассейне.">
 <meta property="og:type" content="website">
@@ -14,59 +14,90 @@
 <meta property="og:image:alt" content="Лука плывёт кролем">
 <link rel="stylesheet" href="./style.css">
 <script defer src="./app.js"></script>
+<script defer src="./stories.js"></script>
 </head>
 <body>
-<header class="bar">
-  <a href="./" class="brand"><span class="logo" aria-hidden="true">≈</span> Дневник Луки</a>
-  <a class="parent-link" href="#parent">Для родителя</a>
+<header class="hero" id="top">
+  <img src="./luka-swim.webp" alt="Лука плывёт кролем" fetchpriority="high">
+  <nav class="nav wrap" aria-label="Дневник"><span>Дневник Луки</span><div class="nav-actions"><a href="#achievements">Достижения</a><a class="parent-link" href="#parent">Для родителя</a></div></nav>
+  <div class="hero-inner wrap"><div class="hero-copy">
+    <h1>Заплывы<br>Луки</h1>
+    <strong class="record" id="record">42,17 с</strong>
+    <p class="record-label">Личный рекорд · 50 м кролем</p>
+    <a class="scroll-link" href="#progress"><span class="circle" aria-hidden="true">↓</span> Смотреть прогресс</a>
+    <button class="hero-share" type="button" data-share="site">Поделиться <span aria-hidden="true">↗</span></button>
+  </div></div>
 </header>
 <main>
-  <section class="hero" aria-labelledby="page-title">
-    <img class="hero-photo" src="./luka-swim.webp" alt="Лука плывёт кролем" fetchpriority="high">
-    <div class="hero-inner">
-      <div class="hero-content">
-        <h1 id="page-title">Заплывы<br>Луки</h1>
-        <div class="hero-actions"><a class="hero-link" href="#progress">Мой прогресс <span aria-hidden="true">↓</span></a><button class="hero-link" type="button" data-share="site">Поделиться <span aria-hidden="true">↗</span></button></div>
-      </div>
-      <div id="stats" class="stats" aria-label="Личный рекорд"></div>
-    </div>
-  </section>
-  <section class="panel progress" id="progress">
-    <div class="heading">
-      <h2>Мой прогресс</h2>
-      <label class="pool"><span class="sr">Длина бассейна</span><select id="pool"><option value="25">Бассейн 25 м</option><option value="50">Бассейн 50 м</option><option value="unknown">Длина неизвестна</option></select></label>
-    </div>
-    <label class="choose-race">Дистанция и стиль<select id="race"></select></label>
-    <div id="progress-summary" class="progress-summary" aria-live="polite"></div>
-    <div id="chart" class="chart"></div>
-    <details id="compare">
-      <summary>Сравнить заплывы</summary>
-      <div class="compare-fields"><label>Первый<select id="first"></select></label><label>Второй<select id="second"></select></label></div>
+  <section class="chapter wrap" id="progress">
+    <h2>Мой прогресс</h2>
+    <div class="progress-layout">
+      <div>
+        <div class="choices" aria-label="Дистанция">
+          <button type="button" data-discipline="50:free" aria-pressed="true">50 м кролем</button>
+          <button type="button" data-discipline="50:back" aria-pressed="false">50 м на спине</button>
+          <button type="button" data-discipline="400:free" aria-pressed="false">400 м кролем</button>
+        </div>
+        <details class="progress-options">
+          <summary>Все дистанции и бассейны</summary>
+          <div class="filters">
+            <label>Дистанция и стиль<select id="race"></select></label>
+            <label>Длина бассейна<select id="pool"><option value="25">25 м</option><option value="50">50 м</option><option value="unknown">Неизвестна</option></select></label>
+          </div>
+        </details>
+        <div id="progress-summary" aria-live="polite"><strong class="metric" id="delta">−19,86 с</strong>
+        <p class="muted metric-caption" id="metric-caption">Сократил время с первого заплыва</p></div>
+        <div id="chart" class="chart" aria-label="Чем выше точка, тем быстрее заплыв"></div>
+        <div class="chart-values" id="chart-values"></div>
+        <ul id="pool-results" class="result-list"></ul>
+        <p class="split-readout" id="split" aria-live="polite"></p>
+    <details id="compare"><summary>Сравнить два заплыва</summary>
+      <div class="filters"><label>Первый<select id="first"></select></label><label>Второй<select id="second"></select></label></div>
       <p id="difference" role="status"></p>
     </details>
-  </section>
-  <section class="achievements" aria-labelledby="achievements-title">
-    <h2 id="achievements-title">Есть чем гордиться</h2>
-    <div class="achievement-grid">
-      <article class="achievement achievement-race" id="success-50">
-        <div class="achievement-top"><span>9 октября 2026 · 50 м кролем</span><strong>42,17 с</strong></div>
-        <h3>Пятое место из 13</h3>
-        <p>Лука проплыл дистанцию на <strong>19,86 с быстрее</strong>, чем на курсовке год назад. На этом старте до 4-го места не хватило всего <strong>0,58 с</strong>.</p>
-        <div class="placings" aria-label="Соседние места в группе мальчиков девяти лет">
-          <span>4-е <b>41,59</b></span><span class="luka-place">Лука · 5-е <b>42,17</b></span><span>6-е <b>42,40</b></span>
-        </div>
-        <details><summary>Источник и группа</summary><p>Первенство ко Дню Невинномысска, мальчики 9 лет. Итоговый протокол, стр. 1, дисциплина 2. Раннее время 1:02,03 — из листа курсовки от 04.10.2025.</p></details>
-        <button class="share-card" type="button" data-share="success-50">Поделиться успехом <span aria-hidden="true">↗</span></button>
-      </article>
-      <article class="achievement achievement-distance" id="success-400">
-        <div class="achievement-top"><span>400 м вольным стилем</span><strong>−28,29 с</strong></div>
-        <h3>На 28 секунд быстрее</h3>
-        <p><strong>8:59,19 → 8:30,9</strong> за три недели. Это 16 длин бассейна. Лука, ты уже знаешь, каково проплыть такую дистанцию от старта до финиша!</p>
-        <details><summary>Источники</summary><p>Лист курсовки от 13.02.2026 и итоговый протокол «День стайера» от 06.03.2026, стр. 6–7, дисциплина 3. Бассейн 25 м на обоих стартах.</p></details>
-        <button class="share-card" type="button" data-share="success-400">Поделиться успехом <span aria-hidden="true">↗</span></button>
-      </article>
+      </div>
+      <aside class="goal" aria-labelledby="goal">
+        <h3 id="goal">Моя следующая цель</h3>
+        <strong class="metric" id="goal-gap">7,12 с</strong>
+        <p class="muted" id="goal-caption">до I юношеского</p>
+        <p class="muted">Норматив 35,05 с · 50 м кролем · 25 м</p>
+        <meter id="goal-meter" min="0" max="100" value="73.61" aria-label="Прогресс от первого заплыва к нормативу"></meter>
+        <a href="https://www.russwimming.ru/documents/players/evsk/" target="_blank" rel="noopener">Таблица ЕВСК ↗</a>
+      </aside>
     </div>
   </section>
+  <section class="achievements chapter" id="achievements">
+    <div class="wrap">
+      <div class="stories-head">
+        <h2>Мои достижения</h2>
+        <div class="controls" aria-label="Листать достижения">
+          <button type="button" id="prev" aria-label="Предыдущее достижение">←</button>
+          <span id="deck-count" class="count" aria-live="polite">1 / 3</span>
+          <button type="button" id="next" aria-label="Следующее достижение">→</button>
+        </div>
+      </div>
+      <div class="deck" id="deck" tabindex="0" aria-label="Карточки достижений. Листайте стрелками">
+        <article class="story" id="success-50" data-depth="0">
+          <video class="clip" loop muted playsinline preload="none" poster="./media/start.jpg" data-src="./media/start.mp4" aria-hidden="true"></video>
+          <div class="content"><div><h3>5-е место</h3><p>Из 13 · 50 м кролем</p></div><button class="open" type="button" data-open="success-50">История заплыва ↗</button></div>
+        </article>
+        <article class="story story-400" id="success-400" data-depth="1" aria-hidden="true" inert>
+          <video class="clip" loop muted playsinline preload="none" poster="./media/race.jpg" data-src="./media/race.mp4" aria-hidden="true"></video>
+          <div class="content"><div><h3>−28,29 с</h3><p>На 400 м кролем</p></div><button class="open" type="button" data-open="success-400">История заплыва ↗</button></div>
+        </article>
+        <article class="story story-back" id="success-back" data-depth="2" aria-hidden="true" inert>
+          <video class="clip" loop muted playsinline preload="none" poster="./media/prep.jpg" data-src="./media/prep.mp4" aria-hidden="true"></video>
+          <div class="content"><div><h3>59,71 с</h3><p>50 м на спине · впервые из минуты</p></div><button class="open" type="button" data-open="success-back">История заплыва ↗</button></div>
+        </article>
+      </div>
+      <div class="deck-footer">
+        <p>Листай карточки свайпом или стрелками</p>
+        <button type="button" class="video-toggle" id="video-toggle">Пауза видео</button>
+      </div>
+      <p class="video-note">Кадры из видеоархива</p>
+    </div>
+  </section>
+  <div class="archive wrap">
   <section class="panel recent" aria-labelledby="recent-title">
     <div class="heading"><h2 id="recent-title">Последние заплывы</h2><a href="#history" id="show-history">Все заплывы</a></div>
     <ul id="recent" class="recent-list"></ul>
@@ -92,7 +123,14 @@
     </details>
   </details>
   <p id="notice" role="status"></p>
+  </div>
 </main>
+<dialog id="story-dialog" class="dialog" aria-labelledby="story-title">
+  <div class="dialog-top"><p id="story-kicker"></p><form method="dialog"><button aria-label="Закрыть историю">×</button></form></div>
+  <h2 id="story-title"></h2>
+  <div id="story-copy" class="story-copy"></div>
+  <button class="share-card primary" type="button" id="story-share" data-share="success-50">Поделиться успехом ↗</button>
+</dialog>
 <dialog id="share-dialog">
   <div class="heading"><h2>Поделиться</h2><button type="button" id="close-share" class="quiet" aria-label="Закрыть">×</button></div>
   <p>Скопируй текст и вставь его в свой канал MAX или отправь бабушке.</p>
@@ -117,5 +155,20 @@
     <p id="error" role="alert"></p><button type="submit" class="primary">Сохранить черновик</button>
   </form>
 </dialog>
+<template id="detail-success-50" data-title="5-е место из 13" data-kicker="9 октября 2026 · 50 м кролем">
+<p>Лука проплыл дистанцию на <strong>19,86 с быстрее</strong>, чем на курсовке год назад. На этом старте до 4-го места не хватило всего <strong>0,58 с</strong>.</p>
+        <div class="placings" aria-label="Соседние места в группе мальчиков девяти лет">
+          <span>4-е <b>41,59</b></span><span class="luka-place">Лука · 5-е <b>42,17</b></span><span>6-е <b>42,40</b></span>
+        </div>
+        <details><summary>Источник и группа</summary><p>Первенство ко Дню Невинномысска, мальчики 9 лет. Итоговый протокол, стр. 1, дисциплина 2. Раннее время 1:02,03 — из листа курсовки от 04.10.2025.</p></details>
+</template>
+<template id="detail-success-400" data-title="На 28,29 с быстрее" data-kicker="400 м кролем · бассейн 25 м">
+<p><strong>8:59,19 → 8:30,9</strong> за три недели. Это 16 длин бассейна. Лука, ты уже знаешь, каково проплыть такую дистанцию от старта до финиша!</p>
+        <details><summary>Источники</summary><p>Лист курсовки от 13.02.2026 и итоговый протокол «День стайера» от 06.03.2026, стр. 6–7, дисциплина 3. Бассейн 25 м на обоих стартах.</p></details>
+</template>
+<template id="detail-success-back" data-title="Быстрее минуты" data-kicker="29 января 2026 · 50 м на спине">
+<p>В декабре было <strong>1:04,60</strong>. На следующем подтверждённом старте Лука проплыл за <strong>59,71</strong> и улучшил время на <strong>4,89 с</strong>.</p>
+        <details><summary>Источники</summary><p><a href="https://www.goswim.ru/competitions/13597" target="_blank" rel="noopener noreferrer">GoSwim, первенство «Героям Отечества»</a> и итоговый протокол от 29.01.2026, стр. 1, дисциплина 2. Бассейн 25 м.</p></details>
+</template>
 </body>
 </html>

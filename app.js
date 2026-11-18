@@ -51,13 +51,17 @@ $('export').onclick = () => {
 };
 field('style').innerHTML = options(Object.keys(styles), value => styles[value]);
 $('pool').onchange = () => renderProgress();
-$('race').onchange = () => {
-  active = $('race').value;
+const quickRaces = [...document.querySelectorAll('[data-discipline]')];
+function chooseRace(value) {
+  active = value;
+  $('race').value = value;
   const pools = rows.filter(row => key(row) === active && row.status === 'verified')
     .map(row => String(row.pool ?? 'unknown'));
   if (!pools.includes($('pool').value) && pools.length) $('pool').value = pools[0];
   renderProgress();
-};
+}
+$('race').onchange = () => chooseRace($('race').value);
+quickRaces.forEach(button => button.onclick = () => chooseRace(button.dataset.discipline));
 for (const [selector, id] of [['.parent-link','parent'], ['#show-history','history'], ['#edit-history','history']]) {
   document.querySelector(selector).addEventListener('click', () => { $(id).open = true; });
 }
@@ -94,9 +98,12 @@ function render() {
   $('discipline').innerHTML = options(['all', ...keys], value => value === 'all' ? 'Все дисциплины' : label(value));
   $('discipline').value = filter;
   const timed = rows.filter(row => row.status === 'verified');
-  const freestyle = timed.filter(row => key(row) === '50:free' && row.pool === 25);
-  const best = freestyle.length ? time(Math.min(...freestyle.map(row => row.time))) + ' с' : '—';
-  $('stats').innerHTML = '<span>Личный рекорд</span><strong>' + best + '</strong><small>50 м кролем · 25 м</small>';
+  const freestyle = timed.filter(row => key(row) === defaultRace && row.pool === 25 && row.time !== null)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  const best = freestyle.length ? Math.min(...freestyle.map(row => row.time)) : null;
+  $('record').textContent = best === null ? '—' : time(best) + ' с';
+  renderGoal(freestyle[0]?.time, best);
+  quickRaces.forEach(button => { button.hidden = !keys.includes(button.dataset.discipline); });
   $('recent').innerHTML = [...timed].sort((a,b) => b.date.localeCompare(a.date)).slice(0,3).map(row =>
     '<li><div><span>' + label(key(row)) + '</span><time datetime="' + row.date + '">' + date(row.date) +
     '</time></div><strong>' + time(row.time, row.precision) + '</strong></li>').join('') ||
@@ -110,77 +117,81 @@ function render() {
   renderHistory();
 }
 
+function renderGoal(first, best) {
+  const standard = 3505;
+  const gap = best === null ? null : best - standard;
+  $('goal-gap').textContent = gap === null ? '—' : gap > 0 ? time(gap) + ' с' : time(standard) + ' с';
+  $('goal-caption').textContent = gap === null ? 'Ждём зачтённое время' :
+    gap > 0 ? 'до I юношеского' : 'Норматив I юношеского по времени';
+  $('goal-meter').value = best === null ? 0 : first <= standard ? 100 :
+    100 * Math.max(0, Math.min(1, (first - best) / (first - standard)));
+}
+
 function renderProgress() {
+  quickRaces.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.discipline === active)));
+  const pool = $('pool').value;
   points = rows.filter(row => key(row) === active && row.status === 'verified' &&
-    row.time !== null && String(row.pool ?? 'unknown') === $('pool').value).sort((a,b) => a.date.localeCompare(b.date));
-  const unknownPool = $('pool').value === 'unknown';
-  $('chart').innerHTML = unknownPool && points.length > 1
-    ? '<ul class="result-list">' + points.map(row => '<li><span>' + date(row.date) +
-      '</span><strong>' + time(row.time, row.precision) + '</strong></li>').join('') + '</ul>'
-    : chart(points);
-  const latest = points.at(-1);
-  const previous = points.at(-2);
-  let title = 'Ждём результат';
-  let message = unknownPool ? 'Уточни длину бассейна.' : 'Здесь появится время из протокола.';
-  let trend = '';
-  if (latest) {
-    title = points.length === 1 ? 'Пока одно время в дневнике' : 'Твои результаты';
-    message = unknownPool ? 'Для сравнения нужна длина бассейна.' :
-      'Когда появится ещё одно зачтённое время, сможем сравнить.';
+    row.time !== null && String(row.pool ?? 'unknown') === pool).sort((a,b) => a.date.localeCompare(b.date));
+
+  const first = points[0], latest = points.at(-1);
+  const canCompare = pool !== 'unknown' && points.length > 1;
+  let metric = 'Ждём результат';
+  let caption = 'Здесь появится время из протокола.';
+  if (canCompare) {
+    const change = latest.time - first.time;
+    metric = (change < 0 ? '−' : change > 0 ? '+' : '') + time(Math.abs(change)) + ' с';
+    caption = change < 0 ? 'Сократил время с первого заплыва' :
+      change > 0 ? 'На столько больше, чем в первом заплыве' : 'То же время, что в первом заплыве';
+  } else if (latest) {
+    metric = time(latest.time, latest.precision) + ' с';
+    caption = pool === 'unknown' ? 'Для сравнения нужна длина бассейна.' :
+      'Пока одно время в дневнике. Когда появится ещё одно, сможем сравнить.';
   }
-  if (!unknownPool && previous) {
-    const delta = latest.time - previous.time;
-    const total = latest.time - points[0].time;
-    trend = delta < 0 ? 'faster' : '';
-    title = delta === 0 ? 'То же время, что в прошлый раз' :
-      time(Math.abs(delta)) + ' с ' + (delta < 0 ? 'быстрее' : 'медленнее') + ', чем в прошлый раз';
-    message = time(previous.time, previous.precision) + ' → ' + time(latest.time, latest.precision) + ' с';
-    if (points.length > 2 && total < 0) message += ' · с первого заплыва быстрее на ' + time(-total) + ' с';
-    if (delta >= 0) message += '. У каждого старта свой темп. Попробуй ещё!';
-  }
-  $('progress-summary').dataset.trend = trend;
-  $('progress-summary').innerHTML = '<h3>' + title + '</h3><p>' + message + '</p>';
-  $('compare').hidden = unknownPool || points.length < 2;
+  $('delta').textContent = metric;
+  $('delta').classList.toggle('metric-empty', !latest);
+  $('metric-caption').textContent = caption;
+  $('chart').hidden = !latest || pool === 'unknown';
+  $('pool-results').innerHTML = pool === 'unknown' ? points.map(row =>
+    '<li><span>' + date(row.date) + '</span><strong>' + time(row.time,row.precision) + '</strong></li>'
+  ).join('') : '';
+  $('chart-values').textContent = '';
+  $('split').textContent = '';
+  if (!$('chart').hidden) renderPlot(points);
+
+  $('compare').hidden = !canCompare;
   for (const name of ['first','second']) {
-    $(name).innerHTML = options(points.map((_, i) => i), i => date(points[i].date) + ' · ' + time(points[i].time));
+    $(name).innerHTML = options(points.map((_,i) => i), i => date(points[i].date) + ' · ' + time(points[i].time, points[i].precision));
   }
   $('second').selectedIndex = points.length - 1;
   compare();
 }
 
-function chart(data) {
-  if (!data.length) return '<p class="empty">Для этой дисциплины и бассейна пока нет подтверждённого времени.</p>';
-  const times = data.map(row => row.time);
-  const min = Math.min(...times), max = Math.max(...times);
-  const span = Math.max(max - min, 200);
-  const timestamps = data.map(row => Date.parse(row.date));
-  const first = timestamps[0], last = timestamps.at(-1);
-  const width = $('chart').clientWidth < 520 ? 340 : 800;
-  const coords = times.map((value,i) => [
-    first === last ? (times.length === 1 ? width / 2 : 52 + i * (width - 104) / (times.length-1)) :
-      52 + (timestamps[i] - first) * (width - 104) / (last - first),
-    32 + (value - min + (span - (max-min))/2) * 110 / span
+function renderPlot(data) {
+  const low = Math.min(...data.map(row => row.time)), high = Math.max(...data.map(row => row.time));
+  const span = Math.max(60, high - low);
+  const positions = data.map((row,i) => [
+    data.length === 1 ? 50 : 8 + 84*i/(data.length-1),
+    19 + (row.time-low)*62/span
   ]);
-  const marks = coords.map(([x,y],i) => {
-    const showValue = i === 0 || i === data.length - 1;
-    const valueY = i === 0 && data.length > 1 ? y + 17 : y - 14;
-    return '<circle cx="' + x + '" cy="' + y + '" r="5"><title>' + date(data[i].date) + ' · ' + time(times[i], data[i].precision) + '</title></circle>' +
-      (showValue ? '<text class="value" x="' + x + '" y="' + valueY + '" text-anchor="middle">' + time(times[i], data[i].precision) + '</text>' : '');
-  }).join('');
-  const ticks = (data.length > 1 ? [0, data.length - 1] : [0]).map(i =>
-    '<text x="' + coords[i][0] + '" y="178" text-anchor="middle">' + date(data[i].date) + '</text>').join('');
-  const grid = [40,85,130,155].map(y => '<path class="grid" d="M22 ' + y + 'H' + (width-22) + '"/>').join('');
-  const chartLabel = 'Результаты по датам. ' + data.map(row => date(row.date) + ' · ' + time(row.time, row.precision)).join('; ');
-  const area = data.length > 1 ? '<polygon class="area" points="' +
-    coords[0][0] + ',155 ' + coords.map(c => c.join(',')).join(' ') + ' ' + coords.at(-1)[0] + ',155"/>' : '';
-  return '<svg role="img" aria-label="' + escape(chartLabel) + '" viewBox="0 0 ' + width + ' 188">' +
-    area + grid + '<polyline class="line" pathLength="1" points="' + coords.map(c => c.join(',')).join(' ') + '"/>' +
-    marks + ticks + '</svg>';
+  const curve = positions.map(([x,y],i) => (i ? 'L' : 'M') + x + ' ' + y).join(' ');
+  const format = row => time(row.time,row.precision);
+  $('chart').style.setProperty('--node-size', 'min(42px,' + (84/Math.max(1,data.length-1)) + '%)');
+  $('chart').innerHTML = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="chart-line" pathLength="1" d="' + curve + '"/></svg>' +
+    positions.map(([x,y],i) => '<button type="button" class="node" aria-pressed="false" style="left:' + x + '%;top:' + y +
+      '%" aria-label="' + escape(date(data[i].date) + ' — ' + format(data[i])) + '"></button>').join('');
+  if (data.length > 1) $('chart-values').innerHTML = '<span>' + format(data[0]) + '</span><span>' + format(data.at(-1)) + '</span>';
+  const nodes = [...$('chart').querySelectorAll('button')];
+  function select(i) {
+    nodes.forEach((node,j) => node.setAttribute('aria-pressed', String(i === j)));
+    $('split').textContent = date(data[i].date) + ' · ' + format(data[i]) + ' с';
+  }
+  nodes.forEach((node,i) => { node.onclick = () => select(i); node.onfocus = () => select(i); });
+  select(data.length - 1);
 }
 
 function compare() {
   const a = points[$('first').value], b = points[$('second').value];
-  if (!a || !b) return;
+  if (!a || !b) { $('difference').textContent = ''; return; }
   if (a === b) { $('difference').textContent = 'Выберите два разных старта.'; return; }
   const delta = b.time - a.time;
   $('difference').textContent = delta === 0 ? 'Время одинаковое.' :
@@ -284,7 +295,8 @@ const publicJournal = 'https://yoursmilephoto-droid.github.io/luka-swim-journal/
 const shareMessages = {
   site: 'Мои заплывы и личные рекорды. Заходите посмотреть! 🏊',
   'success-50': 'Я проплыл 50 м кролем за 42,17 с и занял 5-е место из 13! 🏊',
-  'success-400': 'Я проплыл 400 м вольным стилем за 8:30,9 — на 28,29 с быстрее! 🏊'
+  'success-400': 'Я проплыл 400 м вольным стилем за 8:30,9 — на 28,29 с быстрее! 🏊',
+  'success-back': 'Я проплыл 50 м на спине за 59,71 с и впервые выплыл из минуты! 🏊'
 };
 $('close-share').onclick = () => $('share-dialog').close();
 $('copy-share').onclick = async () => {
