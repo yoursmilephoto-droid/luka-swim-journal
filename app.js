@@ -124,9 +124,9 @@ function renderProgress() {
   let message = unknownPool ? 'Уточни длину бассейна.' : 'Здесь появится время из протокола.';
   let trend = '';
   if (latest) {
-    title = points.length === 1 ? 'Твой первый результат' : 'Твои результаты';
+    title = points.length === 1 ? 'Пока одно время в дневнике' : 'Твои результаты';
     message = unknownPool ? 'Для сравнения нужна длина бассейна.' :
-      'Следующий заплыв покажет, как изменилось время.';
+      'Когда появится ещё одно зачтённое время, сможем сравнить.';
   }
   if (!unknownPool && previous) {
     const delta = latest.time - previous.time;
@@ -204,7 +204,11 @@ function renderHistory() {
       '</td><td class="time">' + official + '</td><td>' + escape(row.event) + '</td><td>' +
       '<span class="badge ' + escape(row.status) + '">' + statuses[row.status] + '</span>' +
       (details ? '<small>' + details + '</small>' : '') +
-      (row.source ? '<small>' + escape(row.source) + '</small>' : '') +
+      (row.source ? '<small>' + (
+        /^https:\/\/www\.goswim\.ru\/competitions\/\d+$/.test(row.sourceUrl)
+          ? '<a href="' + escape(row.sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + escape(row.source) + '</a>'
+          : escape(row.source)
+      ) + '</small>' : '') +
       (row.note ? '<small>' + escape(row.note) + '</small>' : '') +
       '</td><td>' + (editing() ? '<button class="quiet" type="button" data-edit="' + escape(row.id) + '">Изменить</button>' : '') + '</td></tr>';
   }).join('') || '<tr><td colspan="6" class="empty">По этим фильтрам заплывов нет.</td></tr>';
@@ -244,6 +248,7 @@ form.onsubmit = event => {
   const original = rows.find(row => row.id === editId);
   const row = {...original, ...fields, id:editId, distance:+fields.distance,
     pool:+fields.pool || null, time:isTimed ? parsed : null, source:fields.source.trim()};
+  if (row.source !== original?.source) delete row.sourceUrl;
   if (row.time !== original?.time || key(row) !== key(original ?? row) || row.date !== original?.date) {
     for (const name of ['precision','place','rank','points','pointsLabel']) delete row[name];
   }
