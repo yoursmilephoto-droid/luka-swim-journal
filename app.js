@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 const styles = {free:'Вольный стиль',back:'На спине',breast:'Брасс',fly:'Баттерфляй',medley:'Комплекс'};
 const statuses = {verified:'Подтверждён',pending:'Требует сверки',dq:'Дисквалификация'};
-const defaults = ['50:free','50:back','50:breast','50:fly','100:medley','100:free','400:free'];
+const defaultRace = '50:free';
 const draftKey = 'luka-swim-drafts-v1';
 const form = $('form');
 const field = name => form.elements.namedItem(name);
@@ -26,7 +26,7 @@ const options = (items, formatter) => items.map(item =>
 ).join('');
 
 let rows = [];
-let active = defaults[0];
+let active = defaultRace;
 let editId;
 let points = [];
 let published = [];
@@ -51,6 +51,22 @@ $('export').onclick = () => {
 };
 field('style').innerHTML = options(Object.keys(styles), value => styles[value]);
 $('pool').onchange = () => renderProgress();
+$('race').onchange = () => {
+  active = $('race').value;
+  const pools = rows.filter(row => key(row) === active && row.status === 'verified')
+    .map(row => String(row.pool ?? 'unknown'));
+  if (!pools.includes($('pool').value) && pools.length) $('pool').value = pools[0];
+  renderProgress();
+};
+for (const [selector, id] of [['.parent-link','parent'], ['#show-history','history'], ['#edit-history','history']]) {
+  document.querySelector(selector).addEventListener('click', () => { $(id).open = true; });
+}
+function openHashTarget() {
+  const id = location.hash.slice(1);
+  if (id === 'parent' || id === 'history') $(id).open = true;
+}
+window.addEventListener('hashchange', openHashTarget);
+openHashTarget();
 $('discipline').onchange = $('status').onchange = () => renderHistory();
 $('first').onchange = $('second').onchange = () => compare();
 $('close').onclick = () => $('editor').close();
@@ -70,45 +86,31 @@ function edit(row) {
 }
 
 function render() {
-  const keys = [...new Set([...defaults, ...rows.map(key)])];
+  const keys = [...new Set(rows.map(key))];
+  if (!keys.includes(active)) active = keys[0] ?? defaultRace;
+  $('race').innerHTML = options(keys, label);
+  $('race').value = active;
   const filter = $('discipline').value || 'all';
   $('discipline').innerHTML = options(['all', ...keys], value => value === 'all' ? 'Все дисциплины' : label(value));
   $('discipline').value = filter;
   const timed = rows.filter(row => row.status === 'verified');
   const freestyle = timed.filter(row => key(row) === '50:free' && row.pool === 25);
   const best = freestyle.length ? time(Math.min(...freestyle.map(row => row.time))) + ' с' : '—';
-  const longest = Math.max(0, ...timed.map(row => row.distance));
-  const stats = [
-    ['Лучшие 50 м кролем · бассейн 25 м', best],
-    ['Самый длинный заплыв', longest ? longest + ' м' : '—'],
-    ['Заплывов со временем', timed.length]
-  ];
+  $('stats').innerHTML = '<span>Личный рекорд</span><strong>' + best + '</strong><small>50 м кролем · 25 м</small>';
+  $('recent').innerHTML = [...timed].sort((a,b) => b.date.localeCompare(a.date)).slice(0,3).map(row =>
+    '<li><div><span>' + label(key(row)) + '</span><time datetime="' + row.date + '">' + date(row.date) +
+    '</time></div><strong>' + time(row.time, row.precision) + '</strong></li>').join('') ||
+    '<li class="empty">Здесь будут твои заплывы.</li>';
   const needsSource = rows.filter(row => row.status === 'pending');
   const extra = rows.filter(row => row.status === 'verified' && (row.id === 'archive-2' || row.pool === null));
   $('missing').innerHTML = [...needsSource, ...extra].sort((a,b) => a.date.localeCompare(b.date))
     .map(row => '<li><strong>' + date(row.date) + ' · ' + label(key(row)) + '</strong><br>' + escape(row.note) + '</li>').join('') ||
     '<li>Все записи сверены.</li>';
-  $('stats').innerHTML = stats.map(([title, number]) => '<article class="metric"><span>' + title + '</span><strong>' + number + '</strong></article>').join('');
-  $('tabs').replaceChildren(...keys.map(value => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = label(value);
-    button.dataset.key = value;
-    button.onclick = () => {
-      active = value;
-      const verified = rows.filter(row => key(row) === value && row.status === 'verified');
-      const pools = verified.map(row => String(row.pool ?? 'unknown'));
-      if (!pools.includes($('pool').value)) $('pool').value = pools[0] ?? '25';
-      renderProgress();
-    };
-    return button;
-  }));
   renderProgress();
   renderHistory();
 }
 
 function renderProgress() {
-  for (const button of $('tabs').children) button.setAttribute('aria-pressed', String(button.dataset.key === active));
   points = rows.filter(row => key(row) === active && row.status === 'verified' &&
     row.time !== null && String(row.pool ?? 'unknown') === $('pool').value).sort((a,b) => a.date.localeCompare(b.date));
   const unknownPool = $('pool').value === 'unknown';
@@ -118,24 +120,25 @@ function renderProgress() {
     : chart(points);
   const latest = points.at(-1);
   const previous = points.at(-2);
-  let title = 'Ждём подтверждённое время';
-  let message = 'Когда появится результат из протокола, он будет здесь.';
+  let title = 'Ждём результат';
+  let message = unknownPool ? 'Уточни длину бассейна.' : 'Здесь появится время из протокола.';
+  let trend = '';
   if (latest) {
-    title = points.length === 1 ? 'Твоя точка отсчёта' : 'Результаты заплывов';
-    message = unknownPool ? 'Для сравнения нужно узнать длину бассейна.' :
-      'После следующего заплыва на этой дистанции ты сможешь сравнить время.';
+    title = points.length === 1 ? 'Твой первый результат' : 'Твои результаты';
+    message = unknownPool ? 'Для сравнения нужна длина бассейна.' :
+      'Следующий заплыв покажет, как изменилось время.';
   }
   if (!unknownPool && previous) {
     const delta = latest.time - previous.time;
     const total = latest.time - points[0].time;
+    trend = delta < 0 ? 'faster' : '';
     title = delta === 0 ? 'То же время, что в прошлый раз' :
       time(Math.abs(delta)) + ' с ' + (delta < 0 ? 'быстрее' : 'медленнее') + ', чем в прошлый раз';
-    const sinceFirst = points.length < 3 ? '' : total === 0 ? ' В первом заплыве было такое же время.' :
-      ' С первого заплыва время стало на ' + time(Math.abs(total)) + ' с ' + (total < 0 ? 'меньше.' : 'больше.');
-    message = time(previous.time) + ' → ' + time(latest.time) + ' с.' + sinceFirst +
-      (delta < 0 ? ' Здорово, Лука! Запомни, что помогло тебе плыть быстрее.' :
-        ' Бывает. Выбери с тренером одну вещь, которую хочешь попробовать на следующем старте.');
+    message = time(previous.time, previous.precision) + ' → ' + time(latest.time, latest.precision) + ' с';
+    if (points.length > 2 && total < 0) message += ' · с первого заплыва быстрее на ' + time(-total) + ' с';
+    if (delta >= 0) message += '. У каждого старта свой темп. Попробуй ещё!';
   }
+  $('progress-summary').dataset.trend = trend;
   $('progress-summary').innerHTML = '<h3>' + title + '</h3><p>' + message + '</p>';
   $('compare').hidden = unknownPool || points.length < 2;
   for (const name of ['first','second']) {
@@ -159,16 +162,19 @@ function chart(data) {
     32 + (value - min + (span - (max-min))/2) * 110 / span
   ]);
   const marks = coords.map(([x,y],i) => {
-    const showValue = data.length <= 5 || i === data.length - 1;
+    const showValue = i === 0 || i === data.length - 1;
+    const valueY = i === 0 && data.length > 1 ? y + 17 : y - 14;
     return '<circle cx="' + x + '" cy="' + y + '" r="5"><title>' + date(data[i].date) + ' · ' + time(times[i], data[i].precision) + '</title></circle>' +
-      (showValue ? '<text class="value" x="' + x + '" y="' + (y-14) + '" text-anchor="middle">' + time(times[i], data[i].precision) + '</text>' : '');
+      (showValue ? '<text class="value" x="' + x + '" y="' + valueY + '" text-anchor="middle">' + time(times[i], data[i].precision) + '</text>' : '');
   }).join('');
   const ticks = (data.length > 1 ? [0, data.length - 1] : [0]).map(i =>
     '<text x="' + coords[i][0] + '" y="178" text-anchor="middle">' + date(data[i].date) + '</text>').join('');
   const grid = [40,85,130,155].map(y => '<path class="grid" d="M22 ' + y + 'H' + (width-22) + '"/>').join('');
-  const chartLabel = data.length === 1 ? 'Первый подтверждённый старт · ' + time(times[0], data[0].precision) : 'График времени по датам';
-  return '<svg role="img" aria-label="' + chartLabel + '" viewBox="0 0 ' + width + ' 188">' +
-    grid + '<polyline class="line" points="' + coords.map(c => c.join(',')).join(' ') + '"/>' +
+  const chartLabel = 'Результаты по датам. ' + data.map(row => date(row.date) + ' · ' + time(row.time, row.precision)).join('; ');
+  const area = data.length > 1 ? '<polygon class="area" points="' +
+    coords[0][0] + ',155 ' + coords.map(c => c.join(',')).join(' ') + ' ' + coords.at(-1)[0] + ',155"/>' : '';
+  return '<svg role="img" aria-label="' + escape(chartLabel) + '" viewBox="0 0 ' + width + ' 188">' +
+    area + grid + '<polyline class="line" pathLength="1" points="' + coords.map(c => c.join(',')).join(' ') + '"/>' +
     marks + ticks + '</svg>';
 }
 
@@ -266,7 +272,43 @@ async function load() {
     $('add').disabled = false;
     $('export').disabled = false;
   } catch {
-    $('notice').textContent = 'Не удалось загрузить историю. Обнови страницу, чтобы попробовать ещё раз.';
+    $('notice').textContent = 'Не удалось загрузить заплывы. Попробуй обновить страницу.';
   }
 }
+const publicJournal = 'https://yoursmilephoto-droid.github.io/luka-swim-journal/';
+const shareMessages = {
+  site: 'Мои заплывы и личные рекорды. Заходите посмотреть! 🏊',
+  'success-50': 'Я проплыл 50 м кролем за 42,17 с и занял 5-е место из 13! 🏊',
+  'success-400': 'Я проплыл 400 м вольным стилем за 8:30,9 — на 28,29 с быстрее! 🏊'
+};
+$('close-share').onclick = () => $('share-dialog').close();
+$('copy-share').onclick = async () => {
+  const field = $('share-text');
+  field.select();
+  try {
+    await navigator.clipboard.writeText(field.value);
+    $('share-status').textContent = 'Скопировано. Можно вставить в MAX.';
+  } catch {
+    $('share-status').textContent = 'Текст выделен. Нажми «Копировать» в меню телефона.';
+  }
+};
+for (const button of document.querySelectorAll('[data-share]')) {
+  button.onclick = async () => {
+    const target = button.dataset.share;
+    const text = shareMessages[target];
+    const url = publicJournal + (target === 'site' ? '' : '#' + target);
+    try {
+      if (navigator.share) {
+        await navigator.share({title:'Заплывы Луки',text,url});
+        return;
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+    }
+    $('share-text').value = text + '\n' + url;
+    $('share-status').textContent = '';
+    $('share-dialog').showModal();
+  };
+}
+
 load();

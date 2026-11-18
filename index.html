@@ -1,33 +1,121 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Дневник плавания Луки</title><link rel="stylesheet" href="./style.css"><script defer src="./app.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ecf5ff">
+<title>Заплывы Луки</title>
+<meta name="description" content="Заплывы, личные рекорды и достижения Луки в бассейне.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Заплывы Луки">
+<meta property="og:description" content="Личные рекорды и истории заплывов.">
+<meta property="og:url" content="https://yoursmilephoto-droid.github.io/luka-swim-journal/">
+<meta property="og:image" content="https://yoursmilephoto-droid.github.io/luka-swim-journal/luka-swim.webp">
+<meta property="og:image:alt" content="Лука плывёт кролем">
+<link rel="stylesheet" href="./style.css">
+<script defer src="./app.js"></script>
 </head>
 <body>
-<header><div class="bar"><a href="./" class="brand"><span class="logo" aria-hidden="true">≈</span> Дневник плавания</a><a class="parent-link" href="#parent">Для родителя</a></div></header>
+<header class="bar">
+  <a href="./" class="brand"><span class="logo" aria-hidden="true">≈</span> Дневник Луки</a>
+  <a class="parent-link" href="#parent">Для родителя</a>
+</header>
 <main>
-<section class="hero"><div class="hero-content"><h1>Заплывы Луки</h1><p>Лука, здесь твои заплывы и личные рекорды. Выбери дистанцию и посмотри, как менялось твоё время.</p><a class="hero-link" href="#progress">Мой прогресс ↓</a></div><img class="hero-photo" src="./luka-swim.webp" alt="Лука плывёт кролем" fetchpriority="high"></section>
-<section class="stats" id="stats" aria-label="Мои достижения"></section>
-<section class="panel progress" id="progress"><div class="heading"><div><h2>Как меняется моё время</h2><p>Выбери дистанцию и стиль. Чем меньше секунд, тем быстрее заплыв.</p></div><label class="pool">Бассейн <select id="pool"><option value="25">25 м</option><option value="50">50 м</option><option value="unknown">Длина неизвестна</option></select></label></div>
-<div id="tabs" class="tabs" aria-label="Дисциплины"></div><div id="progress-summary" class="progress-summary" aria-live="polite"></div><div id="chart" class="chart"></div>
-<details id="compare"><summary>Сравнить два старта</summary><div class="compare-fields"><label>Первый старт<select id="first"></select></label><label>Второй старт<select id="second"></select></label></div><p id="difference" role="status"></p></details>
-<p class="caption">Сравниваем заплывы одного стиля и дистанции в бассейнах одинаковой длины.</p></section>
-<section class="panel history" id="history"><div class="heading"><div><h2>История заплывов</h2><p id="count"></p></div><div class="filters"><label>Дисциплина<select id="discipline"></select></label><label>Статус<select id="status"><option value="all">Все статусы</option><option value="verified">Подтверждён</option><option value="pending">Требует сверки</option><option value="dq">Дисквалификация</option></select></label></div></div>
-<div class="scroll" tabindex="0" aria-label="Таблица истории заплывов"><table><thead><tr><th>Дата</th><th>Дисциплина</th><th>Время</th><th>Соревнование</th><th>Статус и примечание</th><th><span class="sr">Действия</span></th></tr></thead><tbody id="rows"></tbody></table></div></section>
-<section id="parent" class="panel">
-<div class="heading"><div><h2>Для родителя</h2><p>Протоколы, которые осталось найти или уточнить.</p></div></div>
-<ul id="missing" class="missing"></ul>
-<details id="manage"><summary>Редактировать журнал</summary>
-<p>Изменения сначала сохраняются как черновик в этом браузере. Чтобы обновить журнал для всех на GitHub Pages, скачайте файл и замените <code>starts.json</code> в репозитории.</p>
-<div class="manage-actions"><button id="add" class="primary" disabled>Добавить результат</button><button id="export" class="quiet" disabled>Скачать starts.json</button><a href="#history">К списку заплывов</a><a id="repository" hidden target="_blank" rel="noopener">Открыть starts.json на GitHub ↗</a></div></details>
-<p id="notice" role="status"></p>
-</section>
+  <section class="hero" aria-labelledby="page-title">
+    <img class="hero-photo" src="./luka-swim.webp" alt="Лука плывёт кролем" fetchpriority="high">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <h1 id="page-title">Заплывы<br>Луки</h1>
+        <div class="hero-actions"><a class="hero-link" href="#progress">Мой прогресс <span aria-hidden="true">↓</span></a><button class="hero-link" type="button" data-share="site">Поделиться <span aria-hidden="true">↗</span></button></div>
+      </div>
+      <div id="stats" class="stats" aria-label="Личный рекорд"></div>
+    </div>
+  </section>
+  <section class="panel progress" id="progress">
+    <div class="heading">
+      <h2>Мой прогресс</h2>
+      <label class="pool"><span class="sr">Длина бассейна</span><select id="pool"><option value="25">Бассейн 25 м</option><option value="50">Бассейн 50 м</option><option value="unknown">Длина неизвестна</option></select></label>
+    </div>
+    <label class="choose-race">Дистанция и стиль<select id="race"></select></label>
+    <div id="progress-summary" class="progress-summary" aria-live="polite"></div>
+    <div id="chart" class="chart"></div>
+    <details id="compare">
+      <summary>Сравнить заплывы</summary>
+      <div class="compare-fields"><label>Первый<select id="first"></select></label><label>Второй<select id="second"></select></label></div>
+      <p id="difference" role="status"></p>
+    </details>
+  </section>
+  <section class="achievements" aria-labelledby="achievements-title">
+    <h2 id="achievements-title">Есть чем гордиться</h2>
+    <div class="achievement-grid">
+      <article class="achievement achievement-race" id="success-50">
+        <div class="achievement-top"><span>9 октября 2026 · 50 м кролем</span><strong>42,17 с</strong></div>
+        <h3>Пятое место из 13</h3>
+        <p>Лука проплыл дистанцию на <strong>19,86 с быстрее</strong>, чем на курсовке год назад. На этом старте до 4-го места не хватило всего <strong>0,58 с</strong>.</p>
+        <div class="placings" aria-label="Соседние места в группе мальчиков девяти лет">
+          <span>4-е <b>41,59</b></span><span class="luka-place">Лука · 5-е <b>42,17</b></span><span>6-е <b>42,40</b></span>
+        </div>
+        <details><summary>Источник и группа</summary><p>Первенство ко Дню Невинномысска, мальчики 9 лет. Итоговый протокол, стр. 1, дисциплина 2. Раннее время 1:02,03 — из листа курсовки от 04.10.2025.</p></details>
+        <button class="share-card" type="button" data-share="success-50">Поделиться успехом <span aria-hidden="true">↗</span></button>
+      </article>
+      <article class="achievement achievement-distance" id="success-400">
+        <div class="achievement-top"><span>400 м вольным стилем</span><strong>−28,29 с</strong></div>
+        <h3>На 28 секунд быстрее</h3>
+        <p><strong>8:59,19 → 8:30,9</strong> за три недели. Это 16 длин бассейна. Лука, ты уже знаешь, каково проплыть такую дистанцию от старта до финиша!</p>
+        <details><summary>Источники</summary><p>Лист курсовки от 13.02.2026 и итоговый протокол «День стайера» от 06.03.2026, стр. 6–7, дисциплина 3. Бассейн 25 м на обоих стартах.</p></details>
+        <button class="share-card" type="button" data-share="success-400">Поделиться успехом <span aria-hidden="true">↗</span></button>
+      </article>
+    </div>
+  </section>
+  <section class="panel recent" aria-labelledby="recent-title">
+    <div class="heading"><h2 id="recent-title">Последние заплывы</h2><a href="#history" id="show-history">Все заплывы</a></div>
+    <ul id="recent" class="recent-list"></ul>
+  </section>
+  <details class="panel history" id="history">
+    <summary>Все заплывы</summary>
+    <div class="heading history-heading">
+      <p id="count"></p>
+      <div class="filters">
+        <label>Дисциплина<select id="discipline"></select></label>
+        <label>Статус<select id="status"><option value="all">Все статусы</option><option value="verified">Подтверждён</option><option value="pending">Требует сверки</option><option value="dq">Дисквалификация</option></select></label>
+      </div>
+    </div>
+    <div class="scroll" tabindex="0" aria-label="Таблица заплывов"><table><thead><tr><th>Дата</th><th>Дисциплина</th><th>Время</th><th>Соревнование</th><th>Статус и источник</th><th><span class="sr">Действия</span></th></tr></thead><tbody id="rows"></tbody></table></div>
+  </details>
+  <details id="parent" class="panel">
+    <summary>Для родителя</summary>
+    <h2 class="parent-title">Что осталось сверить</h2>
+    <ul id="missing" class="missing"></ul>
+    <details id="manage"><summary>Редактировать журнал</summary>
+      <p>Сохраните черновик, затем загрузите <code>starts.json</code> в репозиторий. После публикации изменения увидит Лука.</p>
+      <div class="manage-actions"><button id="add" class="primary" disabled>Добавить результат</button><button id="export" class="quiet" disabled>Скачать starts.json</button><a href="#history" id="edit-history">К списку заплывов</a><a id="repository" hidden target="_blank" rel="noopener">Открыть starts.json на GitHub ↗</a></div>
+    </details>
+  </details>
+  <p id="notice" role="status"></p>
 </main>
-<dialog id="editor"><form id="form"><div class="heading"><h2 id="form-title">Добавить результат</h2><button type="button" id="close" class="quiet" aria-label="Закрыть">×</button></div>
-<div class="form-grid"><label>Дата<input required name="date" type="date"></label><label>Дистанция, м<input required name="distance" type="number" min="1" max="10000" step="1" value="50"></label>
-<label>Стиль<select name="style"></select></label><label>Длина бассейна<select name="pool"><option value="">Неизвестна</option><option value="25">25 м</option><option value="50">50 м</option></select></label>
-<label>Время<input name="time" placeholder="42,17 или 3:35,00" inputmode="decimal" maxlength="12"></label><label>Статус<select name="status"><option value="pending">Требует сверки</option><option value="verified">Подтверждён</option><option value="dq">Дисквалификация</option></select></label></div>
-<label>Соревнование<input name="event" maxlength="180" placeholder="Название старта"></label><label>Примечание о подтверждении<textarea name="note" maxlength="1000" rows="3" placeholder="Например, итоговый протокол, страница 2"></textarea></label>
-<p id="error" role="alert"></p><button type="submit" class="primary">Сохранить черновик</button></form></dialog>
-</body></html>
+<dialog id="share-dialog">
+  <div class="heading"><h2>Поделиться</h2><button type="button" id="close-share" class="quiet" aria-label="Закрыть">×</button></div>
+  <p>Скопируй текст и вставь его в свой канал MAX или отправь бабушке.</p>
+  <label>Текст и ссылка<textarea id="share-text" readonly rows="4"></textarea></label>
+  <button type="button" id="copy-share" class="primary">Скопировать</button>
+  <p id="share-status" role="status"></p>
+</dialog>
+<dialog id="editor">
+  <form id="form">
+    <div class="heading"><h2 id="form-title">Добавить результат</h2><button type="button" id="close" class="quiet" aria-label="Закрыть">×</button></div>
+    <div class="form-grid">
+      <label>Дата<input required name="date" type="date"></label>
+      <label>Дистанция, м<input required name="distance" type="number" min="1" max="10000" step="1" value="50"></label>
+      <label>Стиль<select name="style"></select></label>
+      <label>Длина бассейна<select name="pool"><option value="">Неизвестна</option><option value="25" selected>25 м</option><option value="50">50 м</option></select></label>
+      <label>Время<input name="time" placeholder="42,17 или 3:35,00" inputmode="decimal" maxlength="12"></label>
+      <label>Статус<select name="status"><option value="pending">Требует сверки</option><option value="verified">Подтверждён</option><option value="dq">Дисквалификация</option></select></label>
+    </div>
+    <label>Соревнование<input name="event" maxlength="180" placeholder="Название старта"></label>
+    <label>Источник<input name="source" maxlength="300" placeholder="Название протокола и страница"></label>
+    <label>Примечание<textarea name="note" maxlength="1000" rows="2"></textarea></label>
+    <p id="error" role="alert"></p><button type="submit" class="primary">Сохранить черновик</button>
+  </form>
+</dialog>
+</body>
+</html>
