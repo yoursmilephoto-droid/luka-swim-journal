@@ -104,10 +104,15 @@ function render() {
   $('record').textContent = best === null ? '—' : time(best) + ' с';
   renderGoal(freestyle[0]?.time, best);
   quickRaces.forEach(button => { button.hidden = !keys.includes(button.dataset.discipline); });
-  $('recent').innerHTML = [...timed].sort((a,b) => b.date.localeCompare(a.date)).slice(0,3).map(row =>
-    '<li><div><span>' + label(key(row)) + '</span><time datetime="' + row.date + '">' + date(row.date) +
-    '</time></div><strong>' + time(row.time, row.precision) + '</strong></li>').join('') ||
-    '<li class="empty">Здесь будут твои заплывы.</li>';
+  const latest = [...timed].sort((a,b) => b.date.localeCompare(a.date)).slice(0,3);
+  $('recent').innerHTML = latest.map(row => {
+    const link = resultUrl(row);
+    const title = escape(label(key(row)));
+    return '<li class="recent-result"><p class="recent-date"><time datetime="' + row.date + '">' + date(row.date) +
+      '</time>' + (row.event === 'Курсовка' ? ' · Курсовка' : '') + '</p><h3>' + title + '</h3>' +
+      '<strong>' + time(row.time, row.precision) + '</strong>' +
+      (link ? '<div class="recent-actions"><a href="' + escape(link) + '">О заплыве</a>' + resultShare(row) + '</div>' : '') + '</li>';
+  }).join('') || '<li class="empty">Здесь будут твои заплывы.</li>';
   const needsSource = rows.filter(row => row.status === 'pending');
   const extra = rows.filter(row => row.status === 'verified' && (row.id === 'archive-2' || row.pool === null));
   $('missing').innerHTML = [...needsSource, ...extra].sort((a,b) => a.date.localeCompare(b.date))
@@ -221,7 +226,7 @@ function renderHistory() {
           : escape(row.source)
       ) + '</small>' : '') +
       (row.note ? '<small>' + escape(row.note) + '</small>' : '') +
-      '</td><td>' + (editing() ? '<button class="quiet" type="button" data-edit="' + escape(row.id) + '">Изменить</button>' : '') + '</td></tr>';
+      '</td><td>' + resultShare(row) + (editing() ? '<button class="quiet" type="button" data-edit="' + escape(row.id) + '">Изменить</button>' : '') + '</td></tr>';
   }).join('') || '<tr><td colspan="6" class="empty">По этим фильтрам заплывов нет.</td></tr>';
   for (const button of $('rows').querySelectorAll('[data-edit]')) {
     button.onclick = () => edit(rows.find(row => row.id === button.dataset.edit));
@@ -309,23 +314,44 @@ $('copy-share').onclick = async () => {
     $('share-status').textContent = 'Текст выделен. Нажми «Копировать» в меню телефона.';
   }
 };
-for (const button of document.querySelectorAll('[data-share]')) {
-  button.onclick = async () => {
-    const target = button.dataset.share;
-    const text = shareMessages[target];
-    const url = publicJournal + (target === 'site' ? '' : '#' + target);
-    try {
-      if (navigator.share) {
-        await navigator.share({title:'Заплывы Луки',text,url});
-        return;
-      }
-    } catch (error) {
-      if (error.name === 'AbortError') return;
-    }
-    $('share-text').value = text + '\n' + url;
-    $('share-status').textContent = '';
-    $('share-dialog').showModal();
-  };
+function resultUrl(row) {
+  const saved = published.find(item => item.id === row.id);
+  if (!saved || saved.status !== 'verified' || saved.time === null ||
+      JSON.stringify(saved) !== JSON.stringify(row) || !/^[a-z0-9-]+$/.test(row.id)) return '';
+  return './swims/' + row.id + '/';
 }
+
+function resultShare(row) {
+  if (!resultUrl(row)) return '';
+  const description = date(row.date) + ' · ' + label(key(row));
+  return '<button class="quiet result-share" type="button" data-share-result="' + escape(row.id) +
+    '" aria-label="Поделиться заплывом, ' + escape(description) + '">Поделиться</button>';
+}
+
+function openShare(text, url) {
+  const message = text + '\n' + url;
+  $('share-text').value = message;
+  $('send-max').href = 'https://max.ru/:share?text=' + encodeURIComponent(message);
+  $('share-status').textContent = '';
+  $('share-dialog').showModal();
+}
+
+document.addEventListener('click', event => {
+  const result = event.target.closest('[data-share-result]');
+  if (result) {
+    const row = rows.find(item => item.id === result.dataset.shareResult);
+    const link = row && resultUrl(row);
+    if (link) {
+      const text = '🏊 Лука · ' + label(key(row)) + ' — ' + time(row.time, row.precision) +
+        ' (' + date(row.date) + ')';
+      openShare(text, new URL(link, publicJournal).href);
+    }
+    return;
+  }
+  const target = event.target.closest('[data-share]')?.dataset.share;
+  if (target && Object.hasOwn(shareMessages, target)) {
+    openShare(shareMessages[target], publicJournal + (target === 'site' ? '' : '#' + target));
+  }
+});
 
 load();

@@ -12,8 +12,8 @@
 <meta property="og:url" content="https://yoursmilephoto-droid.github.io/luka-swim-journal/">
 <meta property="og:image" content="https://yoursmilephoto-droid.github.io/luka-swim-journal/luka-swim.webp">
 <meta property="og:image:alt" content="Лука плывёт кролем">
-<link rel="stylesheet" href="./style.css">
-<script defer src="./app.js"></script>
+<link rel="stylesheet" href="./style.css?v=swims">
+<script defer src="./app.js?v=swims"></script>
 <script defer src="./stories.js"></script>
 </head>
 <body>
@@ -131,11 +131,11 @@
   <div id="story-copy" class="story-copy"></div>
   <button class="share-card primary" type="button" id="story-share" data-share="success-50">Поделиться успехом ↗</button>
 </dialog>
-<dialog id="share-dialog">
-  <div class="heading"><h2>Поделиться</h2><button type="button" id="close-share" class="quiet" aria-label="Закрыть">×</button></div>
-  <p>Скопируй текст и вставь его в свой канал MAX или отправь бабушке.</p>
+<dialog id="share-dialog" aria-labelledby="share-title">
+  <div class="heading"><h2 id="share-title">Поделиться</h2><button type="button" id="close-share" class="quiet" aria-label="Закрыть">×</button></div>
+  <p>В MAX можно выбрать личный чат или канал.</p>
   <label>Текст и ссылка<textarea id="share-text" readonly rows="4"></textarea></label>
-  <button type="button" id="copy-share" class="primary">Скопировать</button>
+  <div class="share-actions"><a class="primary" id="send-max" target="_blank" rel="noopener noreferrer">Отправить в MAX ↗</a><button type="button" id="copy-share" class="quiet">Скопировать текст и ссылку</button></div>
   <p id="share-status" role="status"></p>
 </dialog>
 <dialog id="editor">
