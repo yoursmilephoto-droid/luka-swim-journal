@@ -27,6 +27,21 @@ def time_label(value, precision=2):
     return f"{minutes}:{seconds.zfill(3 + precision)}" if minutes else f"{seconds} с"
 
 
+def pool_lengths(row):
+    pool = row.get("pool")
+    if not pool or row["distance"] % pool:
+        return ""
+    count = row["distance"] // pool
+    last = count % 10
+    unit = "длин"
+    if not 11 <= count % 100 <= 14:
+        if last == 1:
+            unit = "длина"
+        elif 2 <= last <= 4:
+            unit = "длины"
+    return f"{count} {unit} бассейна по {pool} м"
+
+
 def fonts(bold):
     candidates = (
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold
@@ -37,7 +52,7 @@ def fonts(bold):
     return next(path for path in candidates if Path(path).is_file())
 
 
-def preview(photo, path, title, result, date_label, event_label):
+def preview(photo, path, title, result, date_label, event_label, lengths):
     image = Image.new("RGB", (1200, 630), "#102633")
     crop = ImageOps.fit(photo, (655, 630), centering=(0.06, 0.60))
     fade = Image.linear_gradient("L").rotate(-90, expand=True).resize(crop.size)
@@ -53,6 +68,8 @@ def preview(photo, path, title, result, date_label, event_label):
         result_font = ImageFont.truetype(bold, result_font.size - 4)
     draw.text((84, 277), result, font=result_font, fill="#ffffff")
     draw.text((93, 449), f"{date_label} · {event_label}", font=ImageFont.truetype(regular, 25), fill="#d2e9f4")
+    if lengths:
+        draw.text((93, 497), lengths, font=ImageFont.truetype(bold, 26), fill="#ffffff")
     image.save(path, quality=87, optimize=True)
 
 
@@ -69,12 +86,16 @@ def render(row, output, photo):
     event = row.get("event") or "Подтверждённый заплыв"
     kind = "Курсовка" if event == "Курсовка" else "Соревнования"
     headline = f"{discipline} — {result}"
-    description = f"Лука · {day} · {event}"
-    share = "https://max.ru/:share?text=" + quote(f"🏊 Лука · {headline} ({day})\n{url}", safe="")
-    preview(photo, path / "preview.jpg", discipline, result, day, kind)
+    lengths = pool_lengths(row)
+    description = " · ".join(part for part in ("Лука", day, event, lengths) if part)
+    message = "\n".join(part for part in (f"🏊 Лука · {headline} ({day})", lengths, url) if part)
+    share = "https://max.ru/:share?text=" + quote(message, safe="")
+    preview(photo, path / "preview.jpg", discipline, result, day, kind, lengths)
 
     facts = [("Заплыв", event)]
-    if row.get("pool"):
+    if lengths:
+        facts.append(("Дистанция в бассейне", lengths))
+    elif row.get("pool"):
         facts.append(("Бассейн", f"{row['pool']} м"))
     if row["distance"] >= 200:
         facts.append(("Средний темп на 100 м", time_label(round(row["time"] * 100 / row["distance"]))))
@@ -96,7 +117,7 @@ def render(row, output, photo):
 <title>{e(headline)} · Дневник Луки</title>
 <meta name="description" content="{e(description)}">
 <link rel="canonical" href="{url}">
-<link rel="stylesheet" href="../../style.css?v=swims">
+<link rel="stylesheet" href="../../style.css?v=lengths">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{e(headline)}">
 <meta property="og:description" content="{e(description)}">

@@ -18,6 +18,14 @@ const time = (value, precision = 2) => {
   const seconds = ((value % 6000) / 100).toFixed(precision).replace('.', ',');
   return mins ? mins + ':' + seconds.padStart(3 + precision, '0') : seconds;
 };
+function poolLengths(row) {
+  if (!row.pool || row.distance % row.pool !== 0) return '';
+  const count = row.distance / row.pool;
+  const last = count % 10;
+  const teens = count % 100 >= 11 && count % 100 <= 14;
+  const unit = teens ? 'длин' : last === 1 ? 'длина' : last >= 2 && last <= 4 ? 'длины' : 'длин';
+  return count + ' ' + unit + ' бассейна по ' + row.pool + ' м';
+}
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 })[char]);
@@ -108,9 +116,11 @@ function render() {
   $('recent').innerHTML = latest.map(row => {
     const link = resultUrl(row);
     const title = escape(label(key(row)));
+    const lengths = poolLengths(row);
     return '<li class="recent-result"><p class="recent-date"><time datetime="' + row.date + '">' + date(row.date) +
       '</time>' + (row.event === 'Курсовка' ? ' · Курсовка' : '') + '</p><h3>' + title + '</h3>' +
       '<strong>' + time(row.time, row.precision) + '</strong>' +
+      (lengths ? '<p class="recent-lengths">' + lengths + '</p>' : '') +
       (link ? '<div class="recent-actions"><a href="' + escape(link) + '">О заплыве</a>' + resultShare(row) + '</div>' : '') + '</li>';
   }).join('') || '<li class="empty">Здесь будут твои заплывы.</li>';
   const needsSource = rows.filter(row => row.status === 'pending');
@@ -342,8 +352,9 @@ document.addEventListener('click', event => {
     const row = rows.find(item => item.id === result.dataset.shareResult);
     const link = row && resultUrl(row);
     if (link) {
+      const lengths = poolLengths(row);
       const text = '🏊 Лука · ' + label(key(row)) + ' — ' + time(row.time, row.precision) +
-        ' (' + date(row.date) + ')';
+        ' (' + date(row.date) + ')' + (lengths ? '\n' + lengths : '');
       openShare(text, new URL(link, publicJournal).href);
     }
     return;
